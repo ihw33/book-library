@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+.env.local
+
+# Data (DB, covers는 gitignore — 용량 큼)
+data/books.db
+data/covers/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
