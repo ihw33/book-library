@@ -36,6 +36,8 @@ const TAG_COLORS: Record<string, string> = {
   "서예-한문":       "bg-zinc-600/80 text-zinc-100",
   "타로":            "bg-violet-800/80 text-violet-100",
   "신비학":          "bg-violet-900/80 text-violet-200",
+  "문학":            "bg-amber-700/80 text-amber-100",
+  "인문교양":        "bg-rose-700/80 text-rose-100",
   "레고":            "bg-red-600/80 text-red-100",
   "게임-보드게임":   "bg-green-700/80 text-green-100",
   "사진-영상":       "bg-neutral-600/80 text-neutral-100",

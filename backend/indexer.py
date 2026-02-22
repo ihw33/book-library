@@ -16,6 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from db import init_db, upsert_book, update_fts_content, set_book_tags
 from tagger import auto_tag
+from aladin import search_aladin
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -117,7 +118,6 @@ async def fetch_google_books(client: httpx.AsyncClient, query: str, by_isbn: boo
         if by_isbn:
             url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{query}&maxResults=1"
         else:
-            url = f"https://www.googleapis.com/books/v1/volumes?q={httpx.QueryParams({'q': query})}&maxResults=1"
             url = f"https://www.googleapis.com/books/v1/volumes?q={query}&maxResults=1"
 
         r = await client.get(url, timeout=10)
@@ -176,18 +176,30 @@ async def _index_one(client, pdf_path: Path, idx: int, total: int, progress_call
     # ISBN 추출
     isbn = extract_isbn(pdf_path)
 
-    # Google Books 메타데이터
-    meta = {}
+    # 1순위: 알라딘 API (한국 책 분류 정확)
+    aladin = {}
     if isbn:
-        meta = await fetch_google_books(client, isbn, by_isbn=True)
-    if not meta and title:
-        query = f"{title} {author}".strip()
-        meta = await fetch_google_books(client, query, by_isbn=False)
+        aladin = await search_aladin(client, isbn=isbn)
+    if not aladin and title:
+        import unicodedata
+        q = unicodedata.normalize("NFC", title)
+        aladin = await search_aladin(client, title=q)
 
-    # 메타데이터 병합 (파일명 우선, API로 보완)
+    # 2순위: Google Books (영어 책 fallback)
+    google = {}
+    if not aladin:
+        if isbn:
+            google = await fetch_google_books(client, isbn, by_isbn=True)
+        if not google and title:
+            query = f"{title} {author}".strip()
+            google = await fetch_google_books(client, query, by_isbn=False)
+
+    # 메타데이터 병합 — 알라딘 > Google > 파일명
+    meta = aladin or google
     final_author = author or meta.get("author", "")
-    final_title = title  # 파일명 제목 유지 (더 정확한 경우 많음)
+    final_title = title  # 파일명 제목 유지
     cover_url = meta.get("cover_url", "")
+    isbn = isbn or meta.get("isbn", "")
 
     # 페이지 수
     page_count = get_page_count(pdf_path)
@@ -217,9 +229,11 @@ async def _index_one(client, pdf_path: Path, idx: int, total: int, progress_call
         conn.commit()
         conn.close()
 
-    # 자동 태깅
-    tags = auto_tag(final_title, str(pdf_path))
-    set_book_tags(book_id, tags)
+    # 자동 태깅: 키워드 규칙 + 알라딘 카테고리 병합
+    keyword_tags = auto_tag(final_title, str(pdf_path))
+    api_tags = aladin.get("category_tags", [])
+    merged_tags = sorted(set(keyword_tags) | set(api_tags))
+    set_book_tags(book_id, merged_tags)
 
     # FTS 텍스트 인덱싱
     text = extract_text(pdf_path)

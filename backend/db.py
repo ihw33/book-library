@@ -112,9 +112,7 @@ def upsert_book(data: dict) -> int:
 
 
 def set_book_tags(book_id: int, tag_names: list[str]):
-    """책의 태그 전체 교체 (기존 삭제 후 새로 삽입)."""
-    if not tag_names:
-        return
+    """책의 태그 전체 교체 (기존 삭제 후 새로 삽입). 빈 배열이면 태그 전부 제거."""
     conn = get_conn()
     cur = conn.cursor()
     # 기존 태그 연결 삭제

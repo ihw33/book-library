@@ -16,6 +16,7 @@ interface Book {
   cover_local: string;
   page_count: number;
   filesize: number;
+  tags: string[];
 }
 
 interface Category {
@@ -87,7 +88,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery, selectedCategory, page, loading]);
+  }, [debouncedQuery, selectedCategory, selectedTag, page, loading]);
 
   // 검색어/카테고리/태그 변경 시 리셋
   useEffect(() => {

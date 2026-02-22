@@ -110,12 +110,15 @@ export default function BookCard({ book, isMobile, onTagClick }: Props) {
 
         {/* 태그 */}
         {book.tags && book.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div
+            className="flex flex-wrap gap-1 mt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             {book.tags.slice(0, 3).map((tag) => (
               <TagBadge
                 key={tag}
                 tag={tag}
-                onClick={onTagClick ? (e) => { (e as unknown as Event).stopPropagation?.(); onTagClick(tag); } : undefined}
+                onClick={onTagClick ? () => onTagClick(tag) : undefined}
               />
             ))}
             {book.tags.length > 3 && (
