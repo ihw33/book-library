@@ -7,19 +7,19 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
 // 카테고리별 배경색 (표지 없을 때)
 const CATEGORY_COLORS: Record<string, string> = {
-  "01-프로그래밍-IT": "from-blue-800 to-blue-600",
-  "02-언어학습": "from-green-800 to-green-600",
-  "03-비즈니스-자기계발": "from-orange-800 to-orange-600",
-  "04-디자인-창작": "from-purple-800 to-purple-600",
-  "05-인문학-교양": "from-rose-800 to-rose-600",
-  "06-도구-앱가이드": "from-cyan-800 to-cyan-600",
-  "07-서예-한문": "from-amber-800 to-amber-600",
-  "08-음악-예술": "from-pink-800 to-pink-600",
-  "09-신비학-취미": "from-violet-800 to-violet-600",
-  "11-데이터-분석": "from-teal-800 to-teal-600",
-  "12-시사-전망": "from-red-800 to-red-600",
-  "13-e-books": "from-indigo-800 to-indigo-600",
-  "99-기타-미분류": "from-slate-700 to-slate-600",
+  "01-IT-프로그래밍": "from-blue-800 to-blue-600",
+  "02-외국어": "from-green-800 to-green-600",
+  "03-경제-경영": "from-orange-800 to-orange-600",
+  "04-자기계발": "from-rose-800 to-rose-600",
+  "05-인문학": "from-amber-800 to-amber-600",
+  "06-역사": "from-stone-800 to-stone-600",
+  "07-과학-수학": "from-sky-800 to-sky-600",
+  "08-예술-문화": "from-purple-800 to-purple-600",
+  "09-문학": "from-indigo-800 to-indigo-600",
+  "10-사회-시사": "from-red-800 to-red-600",
+  "11-건강-취미": "from-teal-800 to-teal-600",
+  "12-종교-신비학": "from-violet-800 to-violet-600",
+  "99-기타": "from-slate-700 to-slate-600",
 };
 
 interface Book {
