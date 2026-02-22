@@ -48,9 +48,9 @@ TAG_RULES: list[tuple[str, list[str]]] = [
                    "글로벌 주식", "the money", "이익이란", "경제 상식", "적대적"]),
 
     # 자기계발 / 생산성
-    ("자기계발", ["자기계발", "05-자기계발", "gtd", "getting things done",
+    ("자기계발", ["gtd", "getting things done",
                   "마인드맵", "불렛저널", "칸반", "바인더", "메모력", "노트의 기술",
-                  "생각정리", "체크리스트"]),
+                  "생각정리", "체크리스트", "자기 계발", "자기관리", "습관의 힘"]),
     ("생산성", ["생산성", "목표관리", "okr", "성과 관리", "성과관리", "one page",
                 "하드골", "드라이브", "드보노"]),
     ("글쓰기-사고법", ["글쓰기", "논리", "사고법", "사고 법", "생각의 기술", "생각의 법칙",
@@ -109,6 +109,17 @@ TAG_RULES: list[tuple[str, list[str]]] = [
 ]
 
 
+# 폴더명 → 기본 태그 (키워드/API 매칭 실패 시 fallback)
+FOLDER_FALLBACK: dict[str, str] = {
+    "02-언어학습": "영어",  # 세부 언어 미식별 시
+    "03-비즈니스-자기계발": "비즈니스",
+    "05-인문학-교양": "인문교양",
+    "08-음악-예술": "음악",
+    "09-신비학-취미": "신비학",
+    "12-시사-전망": "시사-사회",
+}
+
+
 def auto_tag(title: str, filepath: str) -> list[str]:
     """제목과 파일 경로를 기반으로 자동 태그 목록 반환.
     macOS HFS+ NFD 인코딩 이슈 처리를 위해 NFC로 정규화 후 비교.
@@ -120,5 +131,12 @@ def auto_tag(title: str, filepath: str) -> list[str]:
         for kw in keywords:
             if kw.lower() in text:
                 tags.add(tag_name)
+                break
+    # 키워드 매칭 실패 시 폴더 기반 fallback
+    if not tags:
+        norm_path = unicodedata.normalize("NFC", filepath)
+        for folder, tag in FOLDER_FALLBACK.items():
+            if folder in norm_path:
+                tags.add(tag)
                 break
     return sorted(tags)
