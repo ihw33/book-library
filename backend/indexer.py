@@ -14,7 +14,8 @@ import httpx
 import fitz  # PyMuPDF
 from pathlib import Path
 from dotenv import load_dotenv
-from db import init_db, upsert_book, update_fts_content
+from db import init_db, upsert_book, update_fts_content, set_book_tags
+from tagger import auto_tag
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -215,6 +216,10 @@ async def _index_one(client, pdf_path: Path, idx: int, total: int, progress_call
         conn.execute("UPDATE books SET cover_local = ? WHERE id = ?", (cover_local, book_id))
         conn.commit()
         conn.close()
+
+    # 자동 태깅
+    tags = auto_tag(final_title, str(pdf_path))
+    set_book_tags(book_id, tags)
 
     # FTS 텍스트 인덱싱
     text = extract_text(pdf_path)
