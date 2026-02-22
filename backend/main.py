@@ -13,7 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from db import init_db, search_books, get_categories, get_book
+from db import (init_db, search_books, get_categories, get_book,
+                get_all_tags, add_book_tag, remove_book_tag, set_book_tags)
+from pydantic import BaseModel
 import indexer as idx_module
 
 app = FastAPI(title="Book Library API", version="1.0.0")
@@ -67,10 +69,11 @@ async def startup():
 async def list_books(
     q: str = Query("", description="검색어"),
     category: str = Query("", description="카테고리 필터"),
+    tag: str = Query("", description="태그 필터"),
     page: int = Query(1, ge=1),
     size: int = Query(40, ge=1, le=100),
 ):
-    books, total = search_books(q, category, page, size)
+    books, total = search_books(q, category, tag, page, size)
     return {
         "items": books,
         "total": total,
@@ -164,6 +167,35 @@ async def open_book(book_id: int):
 @app.get("/categories")
 async def list_categories():
     return get_categories()
+
+
+# ─── 태그 ────────────────────────────────────────────────────
+
+@app.get("/tags")
+async def list_tags():
+    return get_all_tags()
+
+
+class TagBody(BaseModel):
+    tag: str
+
+
+@app.post("/books/{book_id}/tags")
+async def add_tag(book_id: int, body: TagBody):
+    book = get_book(book_id)
+    if not book:
+        raise HTTPException(404, "책을 찾을 수 없습니다")
+    add_book_tag(book_id, body.tag.strip())
+    return {"ok": True, "tags": get_book(book_id)["tags"]}
+
+
+@app.delete("/books/{book_id}/tags/{tag_name}")
+async def delete_tag(book_id: int, tag_name: str):
+    book = get_book(book_id)
+    if not book:
+        raise HTTPException(404, "책을 찾을 수 없습니다")
+    remove_book_tag(book_id, tag_name)
+    return {"ok": True, "tags": get_book(book_id)["tags"]}
 
 
 # ─── 인덱싱 관리 ─────────────────────────────────────────────

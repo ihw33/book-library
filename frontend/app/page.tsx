@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import BookCard from "./components/BookCard";
 import IndexProgress from "./components/IndexProgress";
+import TagBadge from "./components/TagBadge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
@@ -15,6 +16,7 @@ interface Book {
   cover_local: string;
   page_count: number;
   filesize: number;
+  tags: string[];
 }
 
 interface Category {
@@ -33,7 +35,10 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+  const [tags, setTags] = useState<{ name: string; count: number }[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<"folder" | "tag">("folder");
   const [isMobile, setIsMobile] = useState(false);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -53,12 +58,10 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [query]);
 
-  // 카테고리 목록
+  // 카테고리 + 태그 목록
   useEffect(() => {
-    fetch(`${API}/categories`)
-      .then((r) => r.json())
-      .then(setCategories)
-      .catch(() => {});
+    fetch(`${API}/categories`).then((r) => r.json()).then(setCategories).catch(() => {});
+    fetch(`${API}/tags`).then((r) => r.json()).then(setTags).catch(() => {});
   }, []);
 
   // 도서 목록 로드
@@ -70,6 +73,7 @@ export default function Home() {
       const params = new URLSearchParams({
         q: debouncedQuery,
         category: selectedCategory,
+        tag: selectedTag,
         page: String(p),
         size: "40",
       });
@@ -84,16 +88,16 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedQuery, selectedCategory, page, loading]);
+  }, [debouncedQuery, selectedCategory, selectedTag, page, loading]);
 
-  // 검색어/카테고리 변경 시 리셋
+  // 검색어/카테고리/태그 변경 시 리셋
   useEffect(() => {
     setPage(1);
     setBooks([]);
     setHasMore(true);
     loadBooks(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, selectedCategory]);
+  }, [debouncedQuery, selectedCategory, selectedTag]);
 
   // 무한 스크롤
   useEffect(() => {
@@ -133,30 +137,81 @@ export default function Home() {
               📚 내 도서관
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">{total}권</p>
+            {/* 폴더 / 태그 탭 */}
+            <div className="flex mt-3 bg-slate-700 rounded-lg p-0.5">
+              <button
+                onClick={() => setSidebarMode("folder")}
+                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                  sidebarMode === "folder" ? "bg-slate-500 text-white" : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                📁 폴더
+              </button>
+              <button
+                onClick={() => setSidebarMode("tag")}
+                className={`flex-1 text-xs py-1.5 rounded-md transition-colors ${
+                  sidebarMode === "tag" ? "bg-slate-500 text-white" : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🏷 태그
+              </button>
+            </div>
           </div>
 
           <nav className="flex-1 overflow-y-auto p-3">
-            {/* 전체 */}
-            <button
-              onClick={() => { setSelectedCategory(""); setSidebarOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 transition-colors
-                ${selectedCategory === "" ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-            >
-              🗂 전체 ({total})
-            </button>
+            {sidebarMode === "folder" ? (
+              <>
+                {/* 전체 */}
+                <button
+                  onClick={() => { setSelectedCategory(""); setSelectedTag(""); setSidebarOpen(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 transition-colors
+                    ${!selectedCategory && !selectedTag ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                >
+                  🗂 전체 ({total})
+                </button>
 
-            <p className="text-xs text-slate-500 px-3 mt-3 mb-1">카테고리</p>
-            {categories.map((c) => (
-              <button
-                key={c.category}
-                onClick={() => { setSelectedCategory(c.category); setSidebarOpen(false); }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors flex justify-between
-                  ${selectedCategory === c.category ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
-              >
-                <span className="truncate">{categoryLabel(c.category)}</span>
-                <span className="text-xs opacity-70 ml-2 shrink-0">{c.count}</span>
-              </button>
-            ))}
+                <p className="text-xs text-slate-500 px-3 mt-3 mb-1">카테고리</p>
+                {categories.map((c) => (
+                  <button
+                    key={c.category}
+                    onClick={() => { setSelectedCategory(c.category); setSelectedTag(""); setSidebarOpen(false); }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors flex justify-between
+                      ${selectedCategory === c.category ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                  >
+                    <span className="truncate">{categoryLabel(c.category)}</span>
+                    <span className="text-xs opacity-70 ml-2 shrink-0">{c.count}</span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* 태그 전체 */}
+                <button
+                  onClick={() => { setSelectedTag(""); setSelectedCategory(""); setSidebarOpen(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 transition-colors
+                    ${!selectedTag && !selectedCategory ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700"}`}
+                >
+                  🏷 전체 태그
+                </button>
+
+                <p className="text-xs text-slate-500 px-3 mt-3 mb-2">테마별 탐색</p>
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  {tags.map((t) => (
+                    <button
+                      key={t.name}
+                      onClick={() => { setSelectedTag(t.name); setSelectedCategory(""); setSidebarOpen(false); }}
+                      className="text-left"
+                    >
+                      <TagBadge
+                        tag={t.name}
+                        selected={selectedTag === t.name}
+                      />
+                      <span className="text-xs text-slate-500 ml-1">{t.count}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </nav>
 
           <div className="p-3 border-t border-slate-700">
@@ -191,13 +246,13 @@ export default function Home() {
             />
           </div>
 
-          {/* 선택된 카테고리 태그 */}
-          {selectedCategory && (
+          {/* 선택된 필터 표시 */}
+          {(selectedCategory || selectedTag) && (
             <button
-              onClick={() => setSelectedCategory("")}
+              onClick={() => { setSelectedCategory(""); setSelectedTag(""); }}
               className="flex items-center gap-1 bg-blue-600 text-white text-xs px-3 py-1.5 rounded-full whitespace-nowrap"
             >
-              {categoryLabel(selectedCategory)} ✕
+              {selectedTag ? `#${selectedTag}` : categoryLabel(selectedCategory)} ✕
             </button>
           )}
         </header>
@@ -216,7 +271,12 @@ export default function Home() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {books.map((book) => (
-              <BookCard key={book.id} book={book} isMobile={isMobile} />
+              <BookCard
+                key={book.id}
+                book={book}
+                isMobile={isMobile}
+                onTagClick={(tag) => { setSelectedTag(tag); setSelectedCategory(""); setSidebarMode("tag"); }}
+              />
             ))}
           </div>
 

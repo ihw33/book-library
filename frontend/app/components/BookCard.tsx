@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import TagBadge from "./TagBadge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8002";
 
@@ -30,14 +31,16 @@ interface Book {
   cover_local: string;
   page_count: number;
   filesize: number;
+  tags: string[];
 }
 
 interface Props {
   book: Book;
   isMobile: boolean;
+  onTagClick?: (tag: string) => void;
 }
 
-export default function BookCard({ book, isMobile }: Props) {
+export default function BookCard({ book, isMobile, onTagClick }: Props) {
   const [imgError, setImgError] = useState(false);
   const coverUrl = `${API}/books/${book.id}/cover`;
   const gradientClass = CATEGORY_COLORS[book.category] || "from-slate-700 to-slate-600";
@@ -104,6 +107,25 @@ export default function BookCard({ book, isMobile }: Props) {
           </span>
           <span className="text-xs text-slate-600">{formatSize(book.filesize)}</span>
         </div>
+
+        {/* 태그 */}
+        {book.tags && book.tags.length > 0 && (
+          <div
+            className="flex flex-wrap gap-1 mt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {book.tags.slice(0, 3).map((tag) => (
+              <TagBadge
+                key={tag}
+                tag={tag}
+                onClick={onTagClick ? () => onTagClick(tag) : undefined}
+              />
+            ))}
+            {book.tags.length > 3 && (
+              <span className="text-xs text-slate-500 self-center">+{book.tags.length - 3}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
